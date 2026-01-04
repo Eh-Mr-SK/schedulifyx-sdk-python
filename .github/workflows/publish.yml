@@ -1,8 +1,13 @@
 name: Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'schedulifyx/**'
+      - 'pyproject.toml'
   workflow_dispatch:
 
 jobs:
@@ -29,5 +34,3 @@ jobs:
       
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
