@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin, urlencode
 
 
-class SchedulifyError(Exception):
+class SchedulifyXError(Exception):
     """Exception raised for SchedulifyX API errors"""
     
     def __init__(self, message: str, code: str, status: int, details: Optional[Dict] = None):
@@ -18,13 +18,13 @@ class SchedulifyError(Exception):
         self.details = details or {}
     
     def __str__(self):
-        return f"SchedulifyError({self.code}): {self.message}"
+        return f"SchedulifyXError({self.code}): {self.message}"
 
 
 class PostsAPI:
     """Posts API methods"""
     
-    def __init__(self, client: 'Schedulify'):
+    def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
     def list(
@@ -103,7 +103,7 @@ class PostsAPI:
 class AccountsAPI:
     """Accounts API methods"""
     
-    def __init__(self, client: 'Schedulify'):
+    def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
     def list(
@@ -134,7 +134,7 @@ class AccountsAPI:
 class AnalyticsAPI:
     """Analytics API methods"""
     
-    def __init__(self, client: 'Schedulify'):
+    def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
     def overview(self) -> Dict[str, Any]:
@@ -168,7 +168,7 @@ class AnalyticsAPI:
 class MediaAPI:
     """Media API methods"""
     
-    def __init__(self, client: 'Schedulify'):
+    def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
     def get_upload_url(self, filename: str, content_type: str) -> Dict[str, Any]:
@@ -208,7 +208,7 @@ class MediaAPI:
 class QueueAPI:
     """Queue API methods"""
     
-    def __init__(self, client: 'Schedulify'):
+    def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
     def get_slots(self, profile_id: str) -> Dict[str, Any]:
@@ -251,7 +251,7 @@ class QueueAPI:
 class TenantsAPI:
     """Tenants API methods for multi-tenant integrations"""
     
-    def __init__(self, client: 'Schedulify'):
+    def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
     def list(
@@ -349,12 +349,12 @@ class TenantsAPI:
         })
 
 
-class Schedulify:
+class SchedulifyX:
     """
     SchedulifyX API Client
     
     Usage:
-        client = Schedulify('sk_live_YOUR_API_KEY')
+        client = SchedulifyX('sk_live_YOUR_API_KEY')
         posts = client.posts.list()
     """
     
@@ -410,21 +410,32 @@ class Schedulify:
             )
             
             if not response.ok:
-                error_data = response.json() if response.text else {}
-                error = error_data.get('error', {})
-                raise SchedulifyError(
-                    message=error.get('message', f'HTTP {response.status_code}'),
-                    code=error.get('code', 'http_error'),
+                try:
+                    error_data = response.json() if response.text else {}
+                    if isinstance(error_data, dict):
+                        error = error_data.get('error', {})
+                        if isinstance(error, dict):
+                            raise SchedulifyXError(
+                                message=error.get('message', f'HTTP {response.status_code}'),
+                                code=error.get('code', 'http_error'),
+                                status=response.status_code,
+                                details=error.get('details')
+                            )
+                except (ValueError, AttributeError):
+                    pass
+                raise SchedulifyXError(
+                    message=f'HTTP {response.status_code}',
+                    code='http_error',
                     status=response.status_code,
-                    details=error.get('details')
+                    details=None
                 )
             
             return response.json()
             
         except requests.exceptions.Timeout:
-            raise SchedulifyError('Request timeout', 'timeout', 408)
+            raise SchedulifyXError('Request timeout', 'timeout', 408)
         except requests.exceptions.ConnectionError as e:
-            raise SchedulifyError(str(e), 'network_error', 0)
+            raise SchedulifyXError(str(e), 'network_error', 0)
     
     def usage(self) -> Dict[str, Any]:
         """Get API usage statistics"""

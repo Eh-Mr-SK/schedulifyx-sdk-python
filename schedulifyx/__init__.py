@@ -3,7 +3,7 @@ SchedulifyX SDK - Official Python SDK for SchedulifyX API
 https://app.schedulifyx.com/docs/
 """
 
-from .client import Schedulify, SchedulifyError
+from .client import SchedulifyX, SchedulifyXError
 from .types import (
     Post,
     Account,
@@ -17,10 +17,10 @@ from .types import (
     PaginatedResponse,
 )
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 __all__ = [
-    "Schedulify",
-    "SchedulifyError",
+    "SchedulifyX",
+    "SchedulifyXError",
     "Post",
     "Account",
     "Analytics",

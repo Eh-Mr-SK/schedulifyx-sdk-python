@@ -11,9 +11,9 @@ pip install schedulifyx
 ## Quick Start
 
 ```python
-from schedulifyx import Schedulify
+from schedulifyx import SchedulifyX
 
-client = Schedulify('sk_live_YOUR_API_KEY')
+client = SchedulifyX('sk_live_YOUR_API_KEY')
 
 # List all posts
 posts = client.posts.list()
@@ -33,13 +33,13 @@ client.posts.publish(post['data']['id'])
 ## Configuration
 
 ```python
-from schedulify import Schedulify
+from schedulifyx import SchedulifyX
 
 # Simple initialization
-client = Schedulify('sk_live_YOUR_API_KEY')
+client = SchedulifyX('sk_live_YOUR_API_KEY')
 
 # With options
-client = Schedulify(
+client = SchedulifyX(
     api_key='sk_live_YOUR_API_KEY',
     base_url='https://api.schedulifyx.com',  # optional
     timeout=30  # optional, in seconds
@@ -203,13 +203,13 @@ client.tenants.disconnect_account(tenant['data']['id'], 'acc_123')
 ## Error Handling
 
 ```python
-from schedulifyx import Schedulify, SchedulifyError
+from schedulifyx import SchedulifyX, SchedulifyXError
 
-client = Schedulify('sk_live_YOUR_API_KEY')
+client = SchedulifyX('sk_live_YOUR_API_KEY')
 
 try:
     client.posts.create(content='Test', account_ids=['acc_123'])
-except SchedulifyError as e:
+except SchedulifyXError as e:
     print(f'API Error: {e.code} - {e.message}')
     print(f'Status: {e.status}')
     print(f'Details: {e.details}')
