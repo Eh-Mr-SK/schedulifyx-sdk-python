@@ -211,41 +211,136 @@ class QueueAPI:
     def __init__(self, client: 'SchedulifyX'):
         self._client = client
     
-    def get_slots(self, profile_id: str) -> Dict[str, Any]:
-        """Get queue schedule for a profile"""
-        return self._client._request('GET', '/queue/slots', params={'profileId': profile_id})
+    def get_slots(self, account_id: str) -> Dict[str, Any]:
+        """Get queue schedule for an account"""
+        return self._client._request('GET', '/queue/slots', params={'accountId': account_id})
     
     def set_slots(
         self,
-        profile_id: str,
+        account_id: str,
         timezone: str,
         slots: List[Dict[str, Any]],
-        active: bool = True,
-        reshuffle_existing: bool = False
+        is_active: bool = True
     ) -> Dict[str, Any]:
         """Create or update queue schedule"""
         return self._client._request('PUT', '/queue/slots', json={
-            'profileId': profile_id,
+            'accountId': account_id,
             'timezone': timezone,
             'slots': slots,
-            'active': active,
-            'reshuffleExisting': reshuffle_existing
+            'isActive': is_active
         })
     
-    def delete_slots(self, profile_id: str) -> Dict[str, Any]:
+    def delete_slots(self, account_id: str) -> Dict[str, Any]:
         """Delete queue schedule"""
-        return self._client._request('DELETE', '/queue/slots', params={'profileId': profile_id})
+        return self._client._request('DELETE', '/queue/slots', params={'accountId': account_id})
     
-    def get_next_slot(self, profile_id: str) -> Dict[str, Any]:
+    def get_next_slot(self, account_id: str) -> Dict[str, Any]:
         """Get the next available slot"""
-        return self._client._request('GET', '/queue/next-slot', params={'profileId': profile_id})
+        return self._client._request('GET', '/queue/next-slot', params={'accountId': account_id})
     
-    def preview(self, profile_id: str, count: Optional[int] = None) -> Dict[str, Any]:
+    def preview(self, account_id: str, count: Optional[int] = None) -> Dict[str, Any]:
         """Preview upcoming slots"""
-        params = {'profileId': profile_id}
+        params = {'accountId': account_id}
         if count:
             params['count'] = count
         return self._client._request('GET', '/queue/preview', params=params)
+    
+    def get_all(self) -> Dict[str, Any]:
+        """Get all queue schedules"""
+        return self._client._request('GET', '/queue/all')
+
+
+class WebhooksAPI:
+    """Webhooks API methods"""
+    
+    def __init__(self, client: 'SchedulifyX'):
+        self._client = client
+    
+    def list(self) -> Dict[str, Any]:
+        """List all webhooks"""
+        return self._client._request('GET', '/webhooks')
+    
+    def get(self, webhook_id: str) -> Dict[str, Any]:
+        """Get a specific webhook"""
+        return self._client._request('GET', f'/webhooks/{webhook_id}')
+    
+    def create(
+        self,
+        name: str,
+        url: str,
+        events: List[str],
+        is_active: bool = True,
+        retry_count: int = 3,
+        timeout_seconds: int = 30
+    ) -> Dict[str, Any]:
+        """Create a new webhook"""
+        return self._client._request('POST', '/webhooks', json={
+            'name': name,
+            'url': url,
+            'events': events,
+            'isActive': is_active,
+            'retryCount': retry_count,
+            'timeoutSeconds': timeout_seconds
+        })
+    
+    def update(
+        self,
+        webhook_id: str,
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        events: Optional[List[str]] = None,
+        is_active: Optional[bool] = None,
+        retry_count: Optional[int] = None,
+        timeout_seconds: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Update a webhook"""
+        data = {}
+        if name is not None:
+            data['name'] = name
+        if url is not None:
+            data['url'] = url
+        if events is not None:
+            data['events'] = events
+        if is_active is not None:
+            data['isActive'] = is_active
+        if retry_count is not None:
+            data['retryCount'] = retry_count
+        if timeout_seconds is not None:
+            data['timeoutSeconds'] = timeout_seconds
+        return self._client._request('PATCH', f'/webhooks/{webhook_id}', json=data)
+    
+    def delete(self, webhook_id: str) -> Dict[str, Any]:
+        """Delete a webhook"""
+        return self._client._request('DELETE', f'/webhooks/{webhook_id}')
+    
+    def rotate_secret(self, webhook_id: str) -> Dict[str, Any]:
+        """Rotate webhook secret"""
+        return self._client._request('POST', f'/webhooks/{webhook_id}/rotate-secret')
+    
+    def test(self, webhook_id: str, event_type: Optional[str] = None) -> Dict[str, Any]:
+        """Test a webhook by sending a test event"""
+        data = {}
+        if event_type:
+            data['eventType'] = event_type
+        return self._client._request('POST', f'/webhooks/{webhook_id}/test', json=data)
+    
+    def get_events(
+        self,
+        webhook_id: str,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Get webhook event history"""
+        params = {}
+        if limit:
+            params['limit'] = limit
+        if offset:
+            params['offset'] = offset
+        return self._client._request('GET', f'/webhooks/{webhook_id}/events', params=params)
+    
+    def get_event_types(self) -> Dict[str, Any]:
+        """Get available event types"""
+        return self._client._request('GET', '/webhooks/events/types')
 
 
 class TenantsAPI:
@@ -388,6 +483,7 @@ class SchedulifyX:
         self.analytics = AnalyticsAPI(self)
         self.media = MediaAPI(self)
         self.queue = QueueAPI(self)
+        self.webhooks = WebhooksAPI(self)
         self.tenants = TenantsAPI(self)
     
     def _request(
