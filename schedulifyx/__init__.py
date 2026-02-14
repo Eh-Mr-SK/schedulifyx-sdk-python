@@ -15,9 +15,20 @@ from .types import (
     QueueSchedule,
     MediaUploadResponse,
     PaginatedResponse,
+    Comment,
+    CommentReply,
+    CommentStats,
+    Conversation,
+    InboxMessage,
+    InboxStats,
+    HashtagSetItem,
+    HashtagSet,
+    GeneratedHashtag,
+    Template,
+    Webhook,
 )
 
-__version__ = "1.0.4"
+__version__ = "1.1.0"
 __all__ = [
     "SchedulifyX",
     "SchedulifyXError",
@@ -31,4 +42,15 @@ __all__ = [
     "QueueSchedule",
     "MediaUploadResponse",
     "PaginatedResponse",
+    "Comment",
+    "CommentReply",
+    "CommentStats",
+    "Conversation",
+    "InboxMessage",
+    "InboxStats",
+    "HashtagSetItem",
+    "HashtagSet",
+    "GeneratedHashtag",
+    "Template",
+    "Webhook",
 ]

@@ -444,6 +444,229 @@ class TenantsAPI:
         })
 
 
+class CommentsAPI:
+    """Comments API methods"""
+
+    def __init__(self, client: 'SchedulifyX'):
+        self._client = client
+
+    def list(
+        self,
+        account_id: Optional[str] = None,
+        platform: Optional[str] = None,
+        sentiment: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """List comments across all accounts"""
+        params: Dict[str, Any] = {}
+        if account_id:
+            params['accountId'] = account_id
+        if platform:
+            params['platform'] = platform
+        if sentiment:
+            params['sentiment'] = sentiment
+        if sort_by:
+            params['sortBy'] = sort_by
+        if limit:
+            params['limit'] = limit
+        if offset:
+            params['offset'] = offset
+        return self._client._request('GET', '/comments', params=params)
+
+    def get(self, comment_id: str) -> Dict[str, Any]:
+        """Get a single comment by ID"""
+        return self._client._request('GET', f'/comments/{comment_id}')
+
+    def get_replies(self, comment_id: str) -> Dict[str, Any]:
+        """Get replies to a comment"""
+        return self._client._request('GET', f'/comments/{comment_id}/replies')
+
+    def reply(self, comment_id: str, message: str) -> Dict[str, Any]:
+        """Reply to a comment"""
+        return self._client._request('POST', f'/comments/{comment_id}/reply', json={
+            'message': message
+        })
+
+    def stats(self) -> Dict[str, Any]:
+        """Get comment statistics overview"""
+        return self._client._request('GET', '/comments/stats/overview')
+
+
+class InboxAPI:
+    """Inbox / Conversations API methods"""
+
+    def __init__(self, client: 'SchedulifyX'):
+        self._client = client
+
+    def list(
+        self,
+        platform: Optional[str] = None,
+        status: Optional[str] = None,
+        has_unread: Optional[bool] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """List conversations"""
+        params: Dict[str, Any] = {}
+        if platform:
+            params['platform'] = platform
+        if status:
+            params['status'] = status
+        if has_unread is not None:
+            params['hasUnread'] = str(has_unread).lower()
+        if limit:
+            params['limit'] = limit
+        if offset:
+            params['offset'] = offset
+        return self._client._request('GET', '/inbox/conversations', params=params)
+
+    def get(self, conversation_id: str) -> Dict[str, Any]:
+        """Get a specific conversation"""
+        return self._client._request('GET', f'/inbox/conversations/{conversation_id}')
+
+    def get_messages(
+        self,
+        conversation_id: str,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get messages in a conversation"""
+        params: Dict[str, Any] = {}
+        if limit:
+            params['limit'] = limit
+        if offset:
+            params['offset'] = offset
+        return self._client._request('GET', f'/inbox/conversations/{conversation_id}/messages', params=params)
+
+    def reply(self, conversation_id: str, message: str) -> Dict[str, Any]:
+        """Send a reply in a conversation"""
+        return self._client._request('POST', f'/inbox/conversations/{conversation_id}/reply', json={
+            'message': message
+        })
+
+    def stats(self) -> Dict[str, Any]:
+        """Get inbox statistics"""
+        return self._client._request('GET', '/inbox/stats')
+
+
+class HashtagsAPI:
+    """Hashtags API methods"""
+
+    def __init__(self, client: 'SchedulifyX'):
+        self._client = client
+
+    def list(
+        self,
+        platform: Optional[str] = None,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """List hashtag sets"""
+        params: Dict[str, Any] = {}
+        if platform:
+            params['platform'] = platform
+        if category:
+            params['category'] = category
+        if search:
+            params['search'] = search
+        if limit:
+            params['limit'] = limit
+        if offset:
+            params['offset'] = offset
+        return self._client._request('GET', '/hashtags/sets', params=params)
+
+    def get(self, set_id: str) -> Dict[str, Any]:
+        """Get a specific hashtag set"""
+        return self._client._request('GET', f'/hashtags/sets/{set_id}')
+
+    def generate(
+        self,
+        content: Optional[str] = None,
+        platform: Optional[str] = None,
+        category: Optional[str] = None,
+        tone: Optional[str] = None,
+        count: int = 20,
+    ) -> Dict[str, Any]:
+        """Generate hashtags using AI"""
+        data: Dict[str, Any] = {'count': count}
+        if content:
+            data['content'] = content
+        if platform:
+            data['platform'] = platform
+        if category:
+            data['category'] = category
+        if tone:
+            data['tone'] = tone
+        return self._client._request('POST', '/hashtags/generate', json=data)
+
+
+class TemplatesAPI:
+    """Templates API methods"""
+
+    def __init__(self, client: 'SchedulifyX'):
+        self._client = client
+
+    def list(
+        self,
+        category: Optional[str] = None,
+        platform: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """List post templates"""
+        params: Dict[str, Any] = {}
+        if category:
+            params['category'] = category
+        if platform:
+            params['platform'] = platform
+        if limit:
+            params['limit'] = limit
+        if offset:
+            params['offset'] = offset
+        return self._client._request('GET', '/templates', params=params)
+
+    def get(self, template_id: str) -> Dict[str, Any]:
+        """Get a specific template"""
+        return self._client._request('GET', f'/templates/{template_id}')
+
+
+class XTwitterAPI:
+    """X/Twitter BYOK API methods"""
+
+    def __init__(self, client: 'SchedulifyX'):
+        self._client = client
+
+    def get_config(self) -> Dict[str, Any]:
+        """Get X/Twitter BYOK configuration and account modes"""
+        return self._client._request('GET', '/x/config')
+
+    def set_credentials(
+        self,
+        api_key: str,
+        api_secret: str,
+        access_token: str,
+        access_token_secret: str,
+    ) -> Dict[str, Any]:
+        """Set X/Twitter BYOK API credentials"""
+        return self._client._request('POST', '/x/credentials', json={
+            'apiKey': api_key,
+            'apiSecret': api_secret,
+            'accessToken': access_token,
+            'accessTokenSecret': access_token_secret,
+        })
+
+    def switch_mode(self, account_id: str, mode: str) -> Dict[str, Any]:
+        """Switch X/Twitter mode for an account ('byok' or 'wallet')"""
+        return self._client._request('POST', '/x/mode', json={
+            'accountId': account_id,
+            'mode': mode,
+        })
+
+
 class SchedulifyX:
     """
     SchedulifyX API Client
@@ -485,6 +708,11 @@ class SchedulifyX:
         self.queue = QueueAPI(self)
         self.webhooks = WebhooksAPI(self)
         self.tenants = TenantsAPI(self)
+        self.comments = CommentsAPI(self)
+        self.inbox = InboxAPI(self)
+        self.hashtags = HashtagsAPI(self)
+        self.templates = TemplatesAPI(self)
+        self.x_twitter = XTwitterAPI(self)
     
     def _request(
         self,
