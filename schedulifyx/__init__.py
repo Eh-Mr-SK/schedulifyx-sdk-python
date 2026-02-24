@@ -11,9 +11,9 @@ from .types import (
     AnalyticsOverview,
     Usage,
     Tenant,
+    Profile,
     QueueSlot,
     QueueSchedule,
-    MediaUploadResponse,
     PaginatedResponse,
     Comment,
     CommentReply,
@@ -21,14 +21,12 @@ from .types import (
     Conversation,
     InboxMessage,
     InboxStats,
-    HashtagSetItem,
-    HashtagSet,
-    GeneratedHashtag,
-    Template,
+    Mention,
+    MentionStats,
     Webhook,
 )
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __all__ = [
     "SchedulifyX",
     "SchedulifyXError",
@@ -38,9 +36,9 @@ __all__ = [
     "AnalyticsOverview",
     "Usage",
     "Tenant",
+    "Profile",
     "QueueSlot",
     "QueueSchedule",
-    "MediaUploadResponse",
     "PaginatedResponse",
     "Comment",
     "CommentReply",
@@ -48,9 +46,7 @@ __all__ = [
     "Conversation",
     "InboxMessage",
     "InboxStats",
-    "HashtagSetItem",
-    "HashtagSet",
-    "GeneratedHashtag",
-    "Template",
+    "Mention",
+    "MentionStats",
     "Webhook",
 ]

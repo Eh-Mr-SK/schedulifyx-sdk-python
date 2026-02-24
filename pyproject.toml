@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "schedulifyx"
-version = "1.1.0"
+version = "1.2.0"
 description = "Official Python SDK for SchedulifyX API - Social media scheduling made easy"
 readme = "README.md"
 license = "MIT"

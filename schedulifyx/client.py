@@ -31,6 +31,8 @@ class PostsAPI:
         self,
         status: Optional[str] = None,
         account_id: Optional[str] = None,
+        platform: Optional[str] = None,
+        tenant_user_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None
     ) -> Dict[str, Any]:
@@ -40,6 +42,10 @@ class PostsAPI:
             params['status'] = status
         if account_id:
             params['accountId'] = account_id
+        if platform:
+            params['platform'] = platform
+        if tenant_user_id:
+            params['tenantUserId'] = tenant_user_id
         if limit:
             params['limit'] = limit
         if offset:
@@ -53,42 +59,42 @@ class PostsAPI:
     def create(
         self,
         content: str,
-        account_ids: List[str],
-        publish_at: Optional[str] = None,
-        publish_now: bool = False,
+        platforms: List[Dict[str, str]],
+        scheduled_for: Optional[str] = None,
+        mode: Optional[str] = None,
         media_urls: Optional[List[str]] = None,
-        platform_overrides: Optional[Dict[str, Dict[str, str]]] = None
+        tenant_user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Create a new post"""
-        data = {
+        data: Dict[str, Any] = {
             'content': content,
-            'accountIds': account_ids,
+            'platforms': platforms,
         }
-        if publish_at:
-            data['publishAt'] = publish_at
-        if publish_now:
-            data['publishNow'] = True
+        if scheduled_for:
+            data['scheduledFor'] = scheduled_for
+        if mode:
+            data['mode'] = mode
         if media_urls:
             data['mediaUrls'] = media_urls
-        if platform_overrides:
-            data['platformOverrides'] = platform_overrides
+        if tenant_user_id:
+            data['tenantUserId'] = tenant_user_id
         return self._client._request('POST', '/posts', json=data)
     
     def update(
         self,
         post_id: str,
         content: Optional[str] = None,
-        publish_at: Optional[str] = None,
-        media_urls: Optional[List[str]] = None
+        scheduled_for: Optional[str] = None,
+        status: Optional[str] = None
     ) -> Dict[str, Any]:
         """Update an existing post"""
-        data = {}
+        data: Dict[str, Any] = {}
         if content is not None:
             data['content'] = content
-        if publish_at is not None:
-            data['publishAt'] = publish_at
-        if media_urls is not None:
-            data['mediaUrls'] = media_urls
+        if scheduled_for is not None:
+            data['scheduledFor'] = scheduled_for
+        if status is not None:
+            data['status'] = status
         return self._client._request('PATCH', f'/posts/{post_id}', json=data)
     
     def delete(self, post_id: str) -> Dict[str, Any]:
@@ -109,6 +115,8 @@ class AccountsAPI:
     def list(
         self,
         platform: Optional[str] = None,
+        active: Optional[bool] = None,
+        tenant_user_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None
     ) -> Dict[str, Any]:
@@ -116,6 +124,10 @@ class AccountsAPI:
         params = {}
         if platform:
             params['platform'] = platform
+        if active is not None:
+            params['active'] = str(active).lower()
+        if tenant_user_id:
+            params['tenantUserId'] = tenant_user_id
         if limit:
             params['limit'] = limit
         if offset:
@@ -165,44 +177,54 @@ class AnalyticsAPI:
         return self._client._request('GET', '/analytics', params=params)
 
 
-class MediaAPI:
-    """Media API methods"""
-    
+class ProfilesAPI:
+    """Profiles API methods"""
+
     def __init__(self, client: 'SchedulifyX'):
         self._client = client
-    
-    def get_upload_url(self, filename: str, content_type: str) -> Dict[str, Any]:
-        """Get a presigned URL for uploading media"""
-        return self._client._request('POST', '/media/upload-url', json={
-            'filename': filename,
-            'contentType': content_type
-        })
-    
-    def upload(self, file_data: bytes, filename: str, content_type: str) -> str:
-        """
-        Upload a file and return the media URL.
-        
-        Args:
-            file_data: The file content as bytes
-            filename: The filename
-            content_type: The MIME type (e.g., 'image/jpeg')
-        
-        Returns:
-            The media URL to use in posts
-        """
-        response = self.get_upload_url(filename, content_type)
-        upload_url = response['data']['uploadUrl']
-        media_url = response['data']['mediaUrl']
-        
-        # Upload directly to presigned URL
-        upload_response = requests.put(
-            upload_url,
-            data=file_data,
-            headers={'Content-Type': content_type}
-        )
-        upload_response.raise_for_status()
-        
-        return media_url
+
+    def list(self) -> Dict[str, Any]:
+        """List all publishing profiles"""
+        return self._client._request('GET', '/profiles')
+
+    def get(self, profile_id: str) -> Dict[str, Any]:
+        """Get a single profile by ID"""
+        return self._client._request('GET', f'/profiles/{profile_id}')
+
+    def create(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        color: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a new publishing profile"""
+        data: Dict[str, Any] = {'name': name}
+        if description:
+            data['description'] = description
+        if color:
+            data['color'] = color
+        return self._client._request('POST', '/profiles', json=data)
+
+    def update(
+        self,
+        profile_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        color: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Update an existing profile"""
+        data: Dict[str, Any] = {}
+        if name is not None:
+            data['name'] = name
+        if description is not None:
+            data['description'] = description
+        if color is not None:
+            data['color'] = color
+        return self._client._request('PUT', f'/profiles/{profile_id}', json=data)
+
+    def delete(self, profile_id: str) -> Dict[str, Any]:
+        """Delete a profile"""
+        return self._client._request('DELETE', f'/profiles/{profile_id}')
 
 
 class QueueAPI:
@@ -391,7 +413,8 @@ class TenantsAPI:
         tenant_id: str,
         email: Optional[str] = None,
         name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        is_active: Optional[bool] = None
     ) -> Dict[str, Any]:
         """Update a tenant"""
         data = {}
@@ -401,15 +424,20 @@ class TenantsAPI:
             data['name'] = name
         if metadata is not None:
             data['metadata'] = metadata
+        if is_active is not None:
+            data['isActive'] = is_active
         return self._client._request('PATCH', f'/tenants/{tenant_id}', json=data)
     
     def delete(self, tenant_id: str) -> Dict[str, Any]:
         """Delete a tenant"""
         return self._client._request('DELETE', f'/tenants/{tenant_id}')
     
-    def get_connect_url(self, tenant_id: str, platform: str) -> Dict[str, Any]:
+    def get_connect_url(self, tenant_id: str, platform: str, redirect_uri: Optional[str] = None) -> Dict[str, Any]:
         """Get OAuth URL for tenant to connect a platform"""
-        return self._client._request('GET', f'/tenants/{tenant_id}/connect/{platform}')
+        params = {}
+        if redirect_uri:
+            params['redirectUri'] = redirect_uri
+        return self._client._request('GET', f'/tenants/{tenant_id}/connect/{platform}', params=params if params else None)
     
     def list_accounts(self, tenant_id: str) -> Dict[str, Any]:
         """List tenant's connected accounts"""
@@ -434,12 +462,12 @@ class TenantsAPI:
     def connect_mastodon(
         self,
         tenant_id: str,
-        instance: str,
+        instance_url: str,
         access_token: str
     ) -> Dict[str, Any]:
         """Connect Mastodon account for tenant"""
         return self._client._request('POST', f'/tenants/{tenant_id}/connect/mastodon', json={
-            'instance': instance,
+            'instanceUrl': instance_url,
             'accessToken': access_token
         })
 
@@ -454,6 +482,8 @@ class CommentsAPI:
         self,
         account_id: Optional[str] = None,
         platform: Optional[str] = None,
+        post_id: Optional[str] = None,
+        status: Optional[str] = None,
         sentiment: Optional[str] = None,
         sort_by: Optional[str] = None,
         limit: Optional[int] = None,
@@ -465,6 +495,10 @@ class CommentsAPI:
             params['accountId'] = account_id
         if platform:
             params['platform'] = platform
+        if post_id:
+            params['postId'] = post_id
+        if status:
+            params['status'] = status
         if sentiment:
             params['sentiment'] = sentiment
         if sort_by:
@@ -505,6 +539,7 @@ class InboxAPI:
         platform: Optional[str] = None,
         status: Optional[str] = None,
         has_unread: Optional[bool] = None,
+        account_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
@@ -516,6 +551,8 @@ class InboxAPI:
             params['status'] = status
         if has_unread is not None:
             params['hasUnread'] = str(has_unread).lower()
+        if account_id:
+            params['accountId'] = account_id
         if limit:
             params['limit'] = limit
         if offset:
@@ -551,8 +588,8 @@ class InboxAPI:
         return self._client._request('GET', '/inbox/stats')
 
 
-class HashtagsAPI:
-    """Hashtags API methods"""
+class MentionsAPI:
+    """Mentions API methods"""
 
     def __init__(self, client: 'SchedulifyX'):
         self._client = client
@@ -560,78 +597,28 @@ class HashtagsAPI:
     def list(
         self,
         platform: Optional[str] = None,
-        category: Optional[str] = None,
-        search: Optional[str] = None,
+        status: Optional[str] = None,
+        mention_type: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """List hashtag sets"""
+        """List mentions across platforms"""
         params: Dict[str, Any] = {}
         if platform:
             params['platform'] = platform
-        if category:
-            params['category'] = category
-        if search:
-            params['search'] = search
+        if status:
+            params['status'] = status
+        if mention_type:
+            params['mentionType'] = mention_type
         if limit:
             params['limit'] = limit
         if offset:
             params['offset'] = offset
-        return self._client._request('GET', '/hashtags/sets', params=params)
+        return self._client._request('GET', '/mentions', params=params)
 
-    def get(self, set_id: str) -> Dict[str, Any]:
-        """Get a specific hashtag set"""
-        return self._client._request('GET', f'/hashtags/sets/{set_id}')
-
-    def generate(
-        self,
-        content: Optional[str] = None,
-        platform: Optional[str] = None,
-        category: Optional[str] = None,
-        tone: Optional[str] = None,
-        count: int = 20,
-    ) -> Dict[str, Any]:
-        """Generate hashtags using AI"""
-        data: Dict[str, Any] = {'count': count}
-        if content:
-            data['content'] = content
-        if platform:
-            data['platform'] = platform
-        if category:
-            data['category'] = category
-        if tone:
-            data['tone'] = tone
-        return self._client._request('POST', '/hashtags/generate', json=data)
-
-
-class TemplatesAPI:
-    """Templates API methods"""
-
-    def __init__(self, client: 'SchedulifyX'):
-        self._client = client
-
-    def list(
-        self,
-        category: Optional[str] = None,
-        platform: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """List post templates"""
-        params: Dict[str, Any] = {}
-        if category:
-            params['category'] = category
-        if platform:
-            params['platform'] = platform
-        if limit:
-            params['limit'] = limit
-        if offset:
-            params['offset'] = offset
-        return self._client._request('GET', '/templates', params=params)
-
-    def get(self, template_id: str) -> Dict[str, Any]:
-        """Get a specific template"""
-        return self._client._request('GET', f'/templates/{template_id}')
+    def stats(self) -> Dict[str, Any]:
+        """Get mention statistics"""
+        return self._client._request('GET', '/mentions/stats')
 
 
 class XTwitterAPI:
@@ -704,14 +691,13 @@ class SchedulifyX:
         self.posts = PostsAPI(self)
         self.accounts = AccountsAPI(self)
         self.analytics = AnalyticsAPI(self)
-        self.media = MediaAPI(self)
+        self.profiles = ProfilesAPI(self)
         self.queue = QueueAPI(self)
         self.webhooks = WebhooksAPI(self)
         self.tenants = TenantsAPI(self)
         self.comments = CommentsAPI(self)
         self.inbox = InboxAPI(self)
-        self.hashtags = HashtagsAPI(self)
-        self.templates = TemplatesAPI(self)
+        self.mentions = MentionsAPI(self)
         self.x_twitter = XTwitterAPI(self)
     
     def _request(

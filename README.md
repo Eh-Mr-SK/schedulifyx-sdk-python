@@ -22,8 +22,8 @@ print(posts['data'])
 # Create a scheduled post
 post = client.posts.create(
     content='Hello from the SDK! 🚀',
-    account_ids=['acc_123'],
-    publish_at='2024-12-20T10:00:00Z'
+    platforms=[{'platform': 'twitter', 'accountId': 'acc_123'}],
+    scheduled_for='2024-12-20T10:00:00Z'
 )
 
 # Publish immediately
@@ -41,8 +41,8 @@ client = SchedulifyX('sk_live_YOUR_API_KEY')
 # With options
 client = SchedulifyX(
     api_key='sk_live_YOUR_API_KEY',
-    base_url='https://api.schedulifyx.com',  # optional
-    timeout=30  # optional, in seconds
+    base_url='https://api.schedulifyx.com',  # optional, default
+    timeout=30  # optional, in seconds, default 30
 )
 ```
 
@@ -65,20 +65,16 @@ post = client.posts.get('post_123')
 # Create post
 new_post = client.posts.create(
     content='Hello world!',
-    account_ids=['acc_123', 'acc_456'],
-    publish_at='2024-12-20T10:00:00Z',
-    media_urls=['https://example.com/image.jpg'],
-    platform_overrides={
-        'twitter': {'content': 'Hello Twitter! #launch'}
-    }
+    platforms=[
+        {'platform': 'twitter', 'accountId': 'acc_123'},
+        {'platform': 'instagram', 'accountId': 'acc_456'}
+    ],
+    scheduled_for='2024-12-20T10:00:00Z',
+    media_urls=['https://example.com/image.jpg']
 )
 
 # Update post
-client.posts.update(
-    post_id='post_123',
-    content='Updated content',
-    publish_at='2024-12-21T10:00:00Z'
-)
+client.posts.update('post_123', content='Updated content', scheduled_for='2024-12-21T10:00:00Z')
 
 # Delete post
 client.posts.delete('post_123')
@@ -103,32 +99,24 @@ account = client.accounts.get('acc_123')
 boards = client.accounts.get_pinterest_boards('acc_pinterest_123')
 ```
 
-### Media Upload
+### Profiles
 
 ```python
-# Get presigned upload URL
-response = client.media.get_upload_url(
-    filename='my-image.jpg',
-    content_type='image/jpeg'
-)
-upload_url = response['data']['uploadUrl']
-media_url = response['data']['mediaUrl']
+# List publishing profiles
+profiles = client.profiles.list()
 
-# Upload using the presigned URL
-import requests
-with open('image.jpg', 'rb') as f:
-    requests.put(upload_url, data=f, headers={'Content-Type': 'image/jpeg'})
-
-# Use media_url in your post
-client.posts.create(
-    content='Check out this image!',
-    account_ids=['acc_123'],
-    media_urls=[media_url]
+# Create a profile
+profile = client.profiles.create(
+    name='Morning Posts',
+    description='Profile for morning content',
+    color='#3B82F6'
 )
 
-# Or use the convenience helper
-with open('image.jpg', 'rb') as f:
-    media_url = client.media.upload(f.read(), 'image.jpg', 'image/jpeg')
+# Update a profile
+client.profiles.update('profile_123', name='Updated Name')
+
+# Delete a profile
+client.profiles.delete('profile_123')
 ```
 
 ### Analytics
@@ -151,25 +139,100 @@ all_analytics = client.analytics.list(
 
 ```python
 # Get queue schedule
-queue = client.queue.get_slots('profile_123')
+queue = client.queue.get_slots('acc_123')
 
 # Set queue schedule
 client.queue.set_slots(
-    profile_id='profile_123',
+    account_id='acc_123',
     timezone='America/New_York',
     slots=[
         {'dayOfWeek': 1, 'time': '09:00'},
         {'dayOfWeek': 1, 'time': '15:00'},
-        {'dayOfWeek': 2, 'time': '09:00'}
+        {'dayOfWeek': 3, 'time': '12:00'}
     ],
-    active=True
+    is_active=True
 )
 
 # Get next available slot
-next_slot = client.queue.get_next_slot('profile_123')
+next_slot = client.queue.get_next_slot('acc_123')
 
 # Preview upcoming slots
-preview = client.queue.preview('profile_123', count=10)
+preview = client.queue.preview('acc_123', count=10)
+
+# Get all queue schedules
+all_queues = client.queue.get_all()
+
+# Delete queue schedule
+client.queue.delete_slots('acc_123')
+```
+
+### Webhooks
+
+```python
+# Create a webhook
+webhook = client.webhooks.create(
+    name='My Webhook',
+    url='https://your-server.com/webhooks',
+    events=['post.published', 'post.failed']
+)
+
+# List webhooks
+webhooks = client.webhooks.list()
+
+# Update a webhook
+client.webhooks.update('wh_123', events=['post.published'], is_active=False)
+
+# Rotate secret
+rotated = client.webhooks.rotate_secret('wh_123')
+
+# Test a webhook
+client.webhooks.test('wh_123', event_type='post.published')
+
+# Get event history
+events = client.webhooks.get_events('wh_123')
+
+# Get available event types
+types = client.webhooks.get_event_types()
+
+# Delete a webhook
+client.webhooks.delete('wh_123')
+```
+
+### Comments
+
+```python
+comments = client.comments.list(sentiment='positive', limit=20)
+comment = client.comments.get('comment_123')
+replies = client.comments.get_replies('comment_123')
+client.comments.reply('comment_123', message='Thanks!')
+stats = client.comments.stats()
+```
+
+### Inbox
+
+```python
+conversations = client.inbox.list(status='open', has_unread=True)
+messages = client.inbox.get_messages('conv_123')
+client.inbox.reply('conv_123', message='Thanks for reaching out!')
+inbox_stats = client.inbox.stats()
+```
+
+### Mentions
+
+```python
+mentions = client.mentions.list(platform='instagram', status='unread')
+mention_stats = client.mentions.stats()
+```
+
+### X/Twitter BYOK
+
+```python
+config = client.x_twitter.get_config()
+client.x_twitter.set_credentials(
+    api_key='...', api_secret='...',
+    access_token='...', access_token_secret='...'
+)
+client.x_twitter.switch_mode(account_id='acc_123', mode='byok')
 ```
 
 ### Usage
@@ -179,7 +242,7 @@ usage = client.usage()
 print(f"{usage['data']['requestsToday']}/{usage['data']['dailyLimit']} daily requests used")
 ```
 
-### Multi-Tenant (Enterprise)
+### Multi-Tenant
 
 ```python
 # Create a tenant
@@ -191,10 +254,16 @@ tenant = client.tenants.create(
 
 # Get OAuth URL for tenant
 response = client.tenants.get_connect_url(tenant['data']['id'], 'instagram')
-# Redirect user to response['data']['url']
 
 # List tenant's accounts
 accounts = client.tenants.list_accounts(tenant['data']['id'])
+
+# Connect Bluesky for tenant
+client.tenants.connect_bluesky(
+    tenant['data']['id'],
+    identifier='user.bsky.social',
+    app_password='xxxx-xxxx-xxxx-xxxx'
+)
 
 # Disconnect account
 client.tenants.disconnect_account(tenant['data']['id'], 'acc_123')
@@ -208,7 +277,10 @@ from schedulifyx import SchedulifyX, SchedulifyXError
 client = SchedulifyX('sk_live_YOUR_API_KEY')
 
 try:
-    client.posts.create(content='Test', account_ids=['acc_123'])
+    client.posts.create(
+        content='Test',
+        platforms=[{'platform': 'twitter', 'accountId': 'acc_123'}]
+    )
 except SchedulifyXError as e:
     print(f'API Error: {e.code} - {e.message}')
     print(f'Status: {e.status}')
@@ -221,12 +293,26 @@ The SDK includes type hints and dataclasses:
 
 ```python
 from schedulifyx import (
-    Schedulify,
+    SchedulifyX,
+    SchedulifyXError,
     Post,
     Account,
+    Profile,
     Analytics,
+    AnalyticsOverview,
+    Usage,
     Tenant,
-    QueueSchedule
+    QueueSlot,
+    QueueSchedule,
+    Webhook,
+    Comment,
+    CommentStats,
+    Conversation,
+    InboxMessage,
+    InboxStats,
+    Mention,
+    MentionStats,
+    PaginatedResponse,
 )
 ```
 
