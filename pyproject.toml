@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "schedulifyx"
-version = "1.2.0"
-description = "Official Python SDK for SchedulifyX API - Social media scheduling made easy"
+version = "3.0.0"
+description = "Official Python SDK for SchedulifyX API - Three-tier architecture: Embed, Publishing, and Full Engagement"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -22,7 +22,13 @@ keywords = [
     "twitter",
     "facebook",
     "linkedin",
-    "tiktok"
+    "tiktok",
+    "threads",
+    "bluesky",
+    "mastodon",
+    "pinterest",
+    "reddit",
+    "youtube"
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

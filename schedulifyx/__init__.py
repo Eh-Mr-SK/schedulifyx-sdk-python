@@ -1,52 +1,78 @@
 """
-SchedulifyX SDK - Official Python SDK for SchedulifyX API
+SchedulifyX SDK v3.0 - Official Python SDK for SchedulifyX API
+Three-tier architecture: Embed, Publishing, and Full Engagement.
 https://app.schedulifyx.com/docs/
 """
 
 from .client import SchedulifyX, SchedulifyXError
 from .types import (
-    Post,
-    Account,
-    Analytics,
-    AnalyticsOverview,
-    Usage,
+    # Common
+    PaginatedResponse,
+    # Tier 1
     Tenant,
-    Profile,
+    TenantAccount,
+    ClientToken,
+    Webhook,
+    WebhookEvent,
+    WebhookEventType,
+    Usage,
+    # Tier 2
+    Post,
+    PostPlatform,
+    Account,
+    AccountDetail,
+    AnalyticsOverview,
+    AccountAnalyticsEntry,
+    DetailedAnalytics,
+    MediaItem,
     QueueSlot,
     QueueSchedule,
-    PaginatedResponse,
+    Profile,
+    XConfig,
+    # Tier 3
     Comment,
     CommentReply,
     CommentStats,
     Conversation,
-    InboxMessage,
+    Message,
     InboxStats,
     Mention,
     MentionStats,
-    Webhook,
 )
 
-__version__ = "1.2.0"
+__version__ = "3.0.0"
 __all__ = [
     "SchedulifyX",
     "SchedulifyXError",
-    "Post",
-    "Account",
-    "Analytics",
-    "AnalyticsOverview",
-    "Usage",
+    "PaginatedResponse",
+    # Tier 1
     "Tenant",
-    "Profile",
+    "TenantAccount",
+    "ClientToken",
+    "Webhook",
+    "WebhookEvent",
+    "WebhookEventType",
+    "Usage",
+    # Tier 2
+    "Post",
+    "PostPlatform",
+    "Account",
+    "AccountDetail",
+    "AnalyticsOverview",
+    "AccountAnalyticsEntry",
+    "DetailedAnalytics",
+    "MediaItem",
     "QueueSlot",
     "QueueSchedule",
-    "PaginatedResponse",
+    "Profile",
+    "XConfig",
+    # Tier 3
     "Comment",
     "CommentReply",
     "CommentStats",
     "Conversation",
-    "InboxMessage",
+    "Message",
     "InboxStats",
     "Mention",
     "MentionStats",
-    "Webhook",
 ]
