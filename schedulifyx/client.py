@@ -274,6 +274,10 @@ class TenantsAPI:
         raw = self._client._request('POST', f'/tenants/{tenant_id}/client-token', json=data if data else None)
         return _parse(ClientToken, raw.get('data', raw))
 
+    def sync(self, tenant_id: str) -> Dict[str, Any]:
+        """Trigger engagement data sync for a tenant"""
+        return self._client._request('POST', f'/tenants/{tenant_id}/sync')
+
 
 class WebhooksAPI:
     """Webhooks API methods"""
@@ -401,17 +405,21 @@ class SchedulifyX:
         self,
         api_key: str,
         base_url: str = 'https://api.schedulifyx.com',
-        timeout: int = 30
+        timeout: int = 30,
+        tenant_id: Optional[str] = None
     ):
         self.api_key = api_key
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
+        self._tenant_id = tenant_id
         
         self._session = requests.Session()
         self._session.headers.update({
             'Authorization': f'Bearer {api_key}',
             'Content-Type': 'application/json',
         })
+        if tenant_id:
+            self._session.headers['X-Tenant-Id'] = tenant_id
         
         # Tier 1
         self.tenants = TenantsAPI(self)
@@ -428,6 +436,18 @@ class SchedulifyX:
         self.comments = CommentsAPI(self)
         self.inbox = InboxAPI(self)
         self.mentions = MentionsAPI(self)
+    
+    def set_tenant_id(self, tenant_id: str) -> None:
+        """Set the tenant context for Tier 2+ API calls. Required for posts, accounts, analytics, etc."""
+        self._tenant_id = tenant_id
+        if tenant_id:
+            self._session.headers['X-Tenant-Id'] = tenant_id
+        elif 'X-Tenant-Id' in self._session.headers:
+            del self._session.headers['X-Tenant-Id']
+    
+    def get_tenant_id(self) -> Optional[str]:
+        """Get the current tenant ID"""
+        return self._tenant_id
     
     def _request(
         self,
@@ -496,7 +516,6 @@ class PostsAPI:
         platform: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        tenant_user_id: Optional[str] = None
     ) -> PaginatedResponse:
         """List posts. Returns PaginatedResponse with data as list of Post."""
         params: Dict[str, Any] = {}
@@ -508,8 +527,6 @@ class PostsAPI:
             params['limit'] = limit
         if offset is not None:
             params['offset'] = offset
-        if tenant_user_id:
-            params['tenantUserId'] = tenant_user_id
         raw = self._client._request('GET', '/posts', params=params)
         items = _parse_list(Post, raw.get('data', []))
         # Parse nested platforms in each post
@@ -534,7 +551,6 @@ class PostsAPI:
         content: Optional[str] = None,
         scheduled_for: Optional[str] = None,
         media_urls: Optional[List[str]] = None,
-        tenant_user_id: Optional[str] = None,
         mode: Optional[str] = None  # 'publish' | 'schedule' | 'draft'
     ) -> Post:
         """Create a new post"""
@@ -545,8 +561,6 @@ class PostsAPI:
             data['scheduledFor'] = scheduled_for
         if media_urls:
             data['mediaUrls'] = media_urls
-        if tenant_user_id:
-            data['tenantUserId'] = tenant_user_id
         if mode:
             data['mode'] = mode
         raw = self._client._request('POST', '/posts', json=data)
@@ -591,7 +605,6 @@ class AccountsAPI:
         self,
         platform: Optional[str] = None,
         active: Optional[bool] = None,
-        tenant_user_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> PaginatedResponse:
@@ -601,8 +614,6 @@ class AccountsAPI:
             params['platform'] = platform
         if active is not None:
             params['active'] = active
-        if tenant_user_id:
-            params['tenantUserId'] = tenant_user_id
         if limit is not None:
             params['limit'] = limit
         if offset is not None:
@@ -619,6 +630,10 @@ class AccountsAPI:
     def get_pinterest_boards(self, account_id: str) -> Dict[str, Any]:
         """Get Pinterest boards for an account"""
         return self._client._request('GET', f'/accounts/{account_id}/pinterest-boards')
+
+    def get_tiktok_creator_info(self, account_id: str) -> Dict[str, Any]:
+        """Get TikTok creator info for an account"""
+        return self._client._request('GET', f'/accounts/{account_id}/tiktok-creator-info')
 
 
 # ==================== TIER 2: ANALYTICS ====================
@@ -658,6 +673,26 @@ class AnalyticsAPI:
             params['endDate'] = end_date
         raw = self._client._request('GET', '/analytics', params=params)
         return _parse(DetailedAnalytics, raw.get('data', raw))
+
+    def posts(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        platform: Optional[str] = None,
+        sort_by: Optional[str] = None  # 'published_at' | 'engagement'
+    ) -> PaginatedResponse:
+        """Get post-level analytics"""
+        params: Dict[str, Any] = {}
+        if limit is not None:
+            params['limit'] = limit
+        if offset is not None:
+            params['offset'] = offset
+        if platform:
+            params['platform'] = platform
+        if sort_by:
+            params['sortBy'] = sort_by
+        raw = self._client._request('GET', '/analytics/posts', params=params)
+        return PaginatedResponse(data=raw.get('data', []), pagination=raw.get('pagination'))
 
 
 # ==================== TIER 2: MEDIA ====================
@@ -897,6 +932,13 @@ class CommentsAPI:
         raw = self._client._request('GET', '/comments/stats/overview')
         return _parse(CommentStats, raw.get('data', raw))
 
+    def sync(self, account_id: Optional[str] = None) -> Dict[str, Any]:
+        """Sync comments from social platforms"""
+        data: Dict[str, Any] = {}
+        if account_id:
+            data['accountId'] = account_id
+        return self._client._request('POST', '/comments/sync', json=data if data else None)
+
 
 # ==================== TIER 3: INBOX ====================
 
@@ -964,6 +1006,13 @@ class InboxAPI:
         raw = self._client._request('GET', '/inbox/stats')
         return _parse(InboxStats, raw.get('data', raw))
 
+    def sync(self, account_id: Optional[str] = None) -> Dict[str, Any]:
+        """Sync inbox messages from social platforms"""
+        data: Dict[str, Any] = {}
+        if account_id:
+            data['accountId'] = account_id
+        return self._client._request('POST', '/inbox/sync', json=data if data else None)
+
 
 # ==================== TIER 3: MENTIONS ====================
 
@@ -1001,3 +1050,10 @@ class MentionsAPI:
         """Get mention statistics"""
         raw = self._client._request('GET', '/mentions/stats')
         return _parse(MentionStats, raw.get('data', raw))
+
+    def sync(self, account_id: Optional[str] = None) -> Dict[str, Any]:
+        """Sync mentions from social platforms"""
+        data: Dict[str, Any] = {}
+        if account_id:
+            data['accountId'] = account_id
+        return self._client._request('POST', '/mentions/sync', json=data if data else None)

@@ -125,6 +125,7 @@ class PostPlatform:
     account_id: Optional[str] = None
     status: Optional[str] = None
     platform_post_id: Optional[str] = None
+    platform_post_url: Optional[str] = None
     error: Optional[str] = None
     platform_settings: Optional[Dict[str, Any]] = None
 
@@ -139,7 +140,7 @@ class Post:
     scheduled_for: Optional[str] = None
     published_at: Optional[str] = None
     source: Optional[str] = None
-    post_type: str = 'standard'
+    post_type: str = 'post'
     is_draft: bool = False
     is_thread: bool = False
     tenant_user_id: Optional[str] = None
@@ -184,6 +185,8 @@ class AnalyticsOverview:
     published_posts: int = 0
     scheduled_posts: int = 0
     connected_accounts: int = 0
+    total_followers: Optional[int] = None
+    accounts: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -323,22 +326,15 @@ class CommentStats:
 class Conversation:
     """A DM conversation"""
     id: str
-    brand_id: str
-    account_id: str
     platform: str
-    platform_conversation_id: str
-    last_message_at: str
-    unread_count: int
     status: str
+    unread_count: int
     created_at: str
-    updated_at: str
-    account_name: Optional[str] = None
-    participant_id: Optional[str] = None
+    social_account_id: Optional[str] = None
     participant_name: Optional[str] = None
     participant_username: Optional[str] = None
     participant_profile_picture: Optional[str] = None
-    last_message_content: Optional[str] = None
-    labels: List[str] = field(default_factory=list)
+    last_message_at: Optional[str] = None
 
 
 @dataclass
@@ -374,7 +370,7 @@ class Mention:
     content: str
     permalink: str
     created_at: str
-    author_profile_url: str = ''
+    author_profile_picture: str = ''
     media_url: Optional[str] = None
     media_type: Optional[str] = None
     like_count: int = 0
