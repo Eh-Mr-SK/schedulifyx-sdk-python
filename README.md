@@ -10,7 +10,7 @@ SchedulifyX uses a **Three-Tier API Access Model**:
 |------|--------|------|
 | **Tier 1 — Embed** (default) | Tenants, webhooks, pre-built UI components | Free |
 | **Tier 2 — Publishing API** | Posts, accounts, analytics, queue, profiles | Free (approval required) |
-| **Tier 3 — Full Engagement** | Inbox, comments, mentions + all Tier 2 | $49/year |
+| **Tier 3 — Full Engagement** | Inbox, comments, mentions + all Tier 2 | $149/year |
 
 - **This SDK** (server-side): Manage tenants, generate client tokens, configure webhooks (all tiers). With Tier 2+ keys, also access posts, accounts, analytics, and more via REST.
 - **Embed SDK** (`@schedulifyx/embed`, client-side): Render pre-built UI components — available on all tiers, no approval needed.

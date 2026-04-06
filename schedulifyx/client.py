@@ -401,17 +401,30 @@ class SchedulifyX:
         conversations = client.inbox.list()
     """
     
+    # Default HTTP status codes that trigger a retry
+    RETRYABLE_STATUSES = (429, 500, 502, 503, 504)
+
     def __init__(
         self,
         api_key: str,
         base_url: str = 'https://api.schedulifyx.com',
         timeout: int = 30,
-        tenant_id: Optional[str] = None
+        tenant_id: Optional[str] = None,
+        max_retries: int = 3,
+        retry_initial_delay: float = 0.5,
+        retry_max_delay: float = 10.0,
+        retry_backoff_multiplier: float = 2.0,
+        retry_on_network_error: bool = True,
     ):
         self.api_key = api_key
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         self._tenant_id = tenant_id
+        self._max_retries = max_retries
+        self._retry_initial_delay = retry_initial_delay
+        self._retry_max_delay = retry_max_delay
+        self._retry_backoff_multiplier = retry_backoff_multiplier
+        self._retry_on_network_error = retry_on_network_error
         
         self._session = requests.Session()
         self._session.headers.update({
@@ -449,16 +462,28 @@ class SchedulifyX:
         """Get the current tenant ID"""
         return self._tenant_id
     
-    def _request(
+    def _get_retry_delay(self, attempt: int) -> float:
+        """Calculate retry delay with exponential backoff and jitter."""
+        import random
+        delay = self._retry_initial_delay * (self._retry_backoff_multiplier ** attempt)
+        # Add jitter (±25%) to prevent thundering herd
+        jitter = delay * 0.25 * (random.random() * 2 - 1)
+        return min(delay + jitter, self._retry_max_delay)
+
+    def _is_retryable(self, error: SchedulifyXError) -> bool:
+        """Determine if an error is retryable."""
+        if error.code in ('network_error', 'timeout') and self._retry_on_network_error:
+            return True
+        return error.status in self.RETRYABLE_STATUSES
+
+    def _request_once(
         self,
         method: str,
-        endpoint: str,
+        url: str,
         params: Optional[Dict] = None,
         json: Optional[Dict] = None
     ) -> Dict[str, Any]:
-        """Make an API request"""
-        url = f'{self.base_url}{endpoint}'
-        
+        """Execute a single API request (no retries)."""
         try:
             response = self._session.request(
                 method=method,
@@ -495,6 +520,37 @@ class SchedulifyX:
             raise SchedulifyXError('Request timeout', 'timeout', 408)
         except requests.exceptions.ConnectionError as e:
             raise SchedulifyXError(str(e), 'network_error', 0)
+
+    def _request(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict] = None,
+        json: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """Make an API request with automatic retry and exponential backoff.
+        
+        Retries on 429 (rate limit), 500, 502, 503, 504 and network/timeout errors.
+        Uses exponential backoff with jitter between retries.
+        """
+        import time
+        url = f'{self.base_url}{endpoint}'
+        max_attempts = self._max_retries + 1
+        last_error: Optional[SchedulifyXError] = None
+
+        for attempt in range(max_attempts):
+            try:
+                return self._request_once(method, url, params, json)
+            except SchedulifyXError as e:
+                last_error = e
+                is_last_attempt = attempt >= max_attempts - 1
+                if is_last_attempt or not self._is_retryable(e):
+                    raise
+                # Wait with exponential backoff before retrying
+                delay = self._get_retry_delay(attempt)
+                time.sleep(delay)
+
+        raise last_error  # type: ignore
     
     def usage(self) -> Usage:
         """Get API usage statistics"""
